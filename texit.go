@@ -5,36 +5,63 @@ import (
     "os"
     "os/exec"
     "strings"
+    "syscall"
     "testing"
 )
 
+const TEXIT_ENVVAR = "_TEXIT_BE_CRASHER"
+const TEXIT_ENVVAL = "1"
+
 // Example
-func TestCrashes(t *testing.T) {
+func MakeTestWithExit(func_to_test func()) (stdout, stderr string, status_code int, err error) {
     // Only run the failing part when a specific env variable is set
-    if os.Getenv("BE_CRASHER") == "1" {
-        Crashes(42)
+    if os.Getenv(ENVVAR) == TEXIT_ENVVAL {
+        func_to_test()
+
         return
     }
 
     // Start the actual test in a different subprocess
     cmd := exec.Command(os.Args[0], "-test.run=TestCrashes")
-    cmd.Env = append(os.Environ(), "BE_CRASHER=1")
-    stdout, _ := cmd.StderrPipe()
-    if err := cmd.Start(); err != nil {
-        t.Fatal(err)
+    cmd.Env = append(os.Environ(), TEXIT_ENVVAR+"="+TEXIT_ENVVAL)
+
+    stdout_pipe, err := cmd.StdoutPipe()
+    if err != nil {
+        return "", "", err
     }
 
-    // Check that the log fatal message is what we expected
-    gotBytes, _ := ioutil.ReadAll(stdout)
-    got := string(gotBytes)
-    expected := "It crashes because you gave the answer"
-    if !strings.HasSuffix(got[:len(got)-1], expected) {
-        t.Fatalf("Unexpected log message. Got %s but should contain %s", got[:len(got)-1], expected)
+    defer stdout_pipe.Close()
+
+    stderr_pipe, _ := cmd.StderrPipe()
+    if err != nil {
+        return "", "", err
+    }
+
+    defer stderr_pipe.Close()
+
+    if err := cmd.Start(); err != nil {
+        return "", "", err
+    }
+
+    // Read the output stream
+    stdout_bytes, err := ioutil.ReadAll(stdout_pipe)
+    if err != nil {
+        return "", "", err
+    }
+
+    // Read the error stream
+    stderr_bytes, err := ioutil.ReadAll(stderr_pipe)
+    if err != nil {
+        return "", "", err
     }
 
     // Check that the program exited
     err := cmd.Wait()
     if e, ok := err.(*exec.ExitError); !ok || e.Success() {
-        t.Fatalf("Process ran with err %v, want exit status 1", err)
+        return "", "", err
     }
+
+    status := cmd.ProcessState.Sys().(syscall.WaitStatus)
+
+    return string(stdout_bytes), string(stderr_bytes), int(status.ExitCode), nil
 }
