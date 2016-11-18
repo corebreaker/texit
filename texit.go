@@ -8,6 +8,7 @@ import (
     "testing"
 )
 
+// Example
 func TestCrashes(t *testing.T) {
     // Only run the failing part when a specific env variable is set
     if os.Getenv("BE_CRASHER") == "1" {
