@@ -77,7 +77,7 @@ func MakeTestWithExit(func_to_test func()) (stdout, stderr string, status_code i
     }
 
     status, ok := cmd.ProcessState.Sys().(syscall.WaitStatus)
-    if ok {
+    if !ok {
         status_code = status.ExitStatus()
     }
 
