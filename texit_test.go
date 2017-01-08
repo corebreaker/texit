@@ -6,6 +6,10 @@ import (
     "testing"
 )
 
+func f() {
+    os.Exit(1)
+}
+
 func TestWithExit(t *testing.T) {
     MakeTestWithExit(f)
 
