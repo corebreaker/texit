@@ -1,2 +1,2 @@
 # texit
-You could use os.Exit() in Go tests
+_This project is still under development_ 
