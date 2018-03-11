@@ -1,37 +1,48 @@
 package texit
 
 import (
-    "testing"
+	"testing"
 )
 
 func TestFuncName(t *testing.T) {
-    name, err := func_name()
-    if err != nil {
-        t.Fatal(err)
-    }
+	name, line, err := func() (string, int, error) {
+		return test_func_name()
+	}()
 
-    if name != "TestFuncName" {
-        t.Fail()
-    }
+	if err != nil {
+		t.Fatal(err)
+	}
 
-    type tMsg struct {
-        name string
-        err  error
-    }
+	const func_name = "TestFuncName"
+	const line_num = 10
 
-    resp := make(chan tMsg)
+	if name != func_name {
+		t.Fatalf("Bad function name (%s != %s)", name, func_name)
+	}
 
-    go func() {
-        name, err := func_name()
-        resp <- tMsg{name, err}
-    }()
+	if line != line_num {
+		t.Fatalf("Bad file line (%d != %d)", line, line_num)
+	}
 
-    res := <-resp
-    if res.err == nil {
-        t.Errorf("No error returned, name=%s")
-    }
+	type tMsg struct {
+		name string
+		line int
+		err  error
+	}
 
-    if res.err.Error() != _FUNCNAME_ERRMSG {
-        t.Errorf("Bad error: %v", res.err)
-    }
+	resp := make(chan tMsg)
+
+	go func() {
+		name, line, err := test_func_name()
+		resp <- tMsg{name, line, err}
+	}()
+
+	res := <-resp
+	if res.err == nil {
+		t.Errorf("No error returned, name=%s:%d", res.name, res.line)
+	}
+
+	if res.err.Error() != _FUNCNAME_ERRMSG {
+		t.Errorf("Bad error: %v", res.err)
+	}
 }

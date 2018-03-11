@@ -1,85 +1,105 @@
 package texit
 
 import (
-    "io/ioutil"
-    "os"
-    "os/exec"
-    "strings"
-    "syscall"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"strconv"
+	"strings"
+	"syscall"
 )
 
 const (
-    TEXIT_ENVVAR = "_TEXIT_BE_CRASHER"
-    TEXIT_ENVVAL = "1"
+	// Argument to notice the subprocess, try to have a pretty complicated argument to avoid collisions.
+	_TEXIT_ARG = "TEXIT-X1RFWElUX0JFX0NSQVNIRVIK:"
 )
 
-// Example
-func MakeTestWithExit(func_to_test func()) (stdout, stderr string, status_code int, err error) {
-    // Only run the failing part when a specific env variable is set
-    if os.Getenv(TEXIT_ENVVAR) == TEXIT_ENVVAL {
-        func_to_test()
+// DoTestWithExit
+func DoTestWithExit(func_to_test func()) (stdout, stderr string, status_code int, err error) {
+	name, prog_line, err := test_func_name()
+	if err != nil {
+		return "", "", -1, err
+	}
 
-        os.Exit(0)
-    }
+	line_arg := -1
+	last_arg := os.Args[len(os.Args)-1]
 
-    name, err := func_name()
-    if err != nil {
-        return "", "", -1, err
-    }
+	// If prefix matches the constant `_TEXIT_ARG`
+	if strings.HasPrefix(last_arg, _TEXIT_ARG) {
+		n, err := strconv.Atoi(last_arg[len(_TEXIT_ARG):])
+		if err != nil {
+			return "", "", -1, err
+		}
 
-    args := []string{"-test.run=" + name}
-    for _, arg := range os.Args {
-        if strings.HasPrefix(arg, "-test.coverprofile=") {
-            args = append(args, arg)
+		line_arg = n
+	}
 
-            break
-        }
-    }
+	// Only run the failing part when a specific command line argument is given
+	// and line in source code matches the one that is passed as the command line argument suffix
+	if line_arg == prog_line {
+		func_to_test()
 
-    // Start the actual test in a different subprocess
-    cmd := exec.Command(os.Args[0], args...)
-    cmd.Env = append(os.Environ(), TEXIT_ENVVAR+"="+TEXIT_ENVVAL)
+		os.Exit(0)
+	}
 
-    stdout_pipe, err := cmd.StdoutPipe()
-    if err != nil {
-        return "", "", -1, err
-    }
+	args := []string{"-test.run=" + name}
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, "-test.coverprofile=") || strings.HasPrefix(arg, "-test.v=") || (arg == "-test.v") {
+			args = append(args, arg)
+		}
+	}
 
-    defer stdout_pipe.Close()
+	// Start the actual test in a different subprocess
+	cmd := exec.Command(os.Args[0], append(args, fmt.Sprintf("%s%d", _TEXIT_ARG, prog_line))...)
 
-    stderr_pipe, _ := cmd.StderrPipe()
-    if err != nil {
-        return "", "", -1, err
-    }
+	stdout_pipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return "", "", -1, err
+	}
 
-    defer stderr_pipe.Close()
+	defer stdout_pipe.Close()
 
-    if err := cmd.Start(); err != nil {
-        return "", "", -1, err
-    }
+	stderr_pipe, _ := cmd.StderrPipe()
+	if err != nil {
+		return "", "", -1, err
+	}
 
-    // Read the output stream
-    stdout_bytes, err := ioutil.ReadAll(stdout_pipe)
-    if err != nil {
-        return "", "", -1, err
-    }
+	defer stderr_pipe.Close()
 
-    // Read the error stream
-    stderr_bytes, err := ioutil.ReadAll(stderr_pipe)
-    if err != nil {
-        return "", "", -1, err
-    }
+	if err := cmd.Start(); err != nil {
+		return "", "", -1, err
+	}
 
-    // Check that the program exited
-    err = cmd.Wait()
-    if e, ok := err.(*exec.ExitError); (err != nil) && (!ok || e.Success()) {
-        return "", "", -1, err
-    }
+	// Read the output stream
+	stdout_bytes, err := ioutil.ReadAll(stdout_pipe)
+	if err != nil {
+		return "", "", -1, err
+	}
 
-    status, ok := cmd.ProcessState.Sys().(syscall.WaitStatus)
-    if !ok {
-        status_code = status.ExitStatus()
-    }
+	// Read the error stream
+	stderr_bytes, err := ioutil.ReadAll(stderr_pipe)
+	if err != nil {
+		return "", "", -1, err
+	}
 
-    return string(stdout_bytes), string(stderr_bytes), status_code, nil
+	// Check that the program exited
+	err = cmd.Wait()
+	if e, ok := err.(*exec.ExitError); (err != nil) && (!(ok && e.Success())) {
+		if ok && (!e.Success()) {
+			status, ok := cmd.ProcessState.Sys().(syscall.WaitStatus)
+			if ok {
+				return string(stdout_bytes), string(stderr_bytes), status.ExitStatus(), err
+			}
+		}
+
+		return string(stdout_bytes), string(stderr_bytes), -1, err
+	}
+
+	status, ok := cmd.ProcessState.Sys().(syscall.WaitStatus)
+	if ok {
+		status_code = status.ExitStatus()
+	}
+
+	return string(stdout_bytes), string(stderr_bytes), status_code, nil
 }
