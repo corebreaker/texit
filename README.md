@@ -1,7 +1,7 @@
 # texit
-[![Build Status](https://travis-ci.org/corebreaker/texit.svg?branch=master)](https://travis-ci.org/corebreaker/texit)
-[![Coverage Status](https://coveralls.io/repos/github/corebreaker/texit/badge.svg)](https://coveralls.io/github/corebreaker/texit)
-[![GoDoc](https://godoc.org/github.com/corebreaker/texit?status.svg)](https://godoc.org/github.com/corebreaker/texit)
+[![Build Status](https://img.shields.io/travis/corebreaker/texit/master.svg?style=plastic)](https://travis-ci.org/corebreaker/texit)
+[![Coverage Status](https://img.shields.io/coveralls/github/corebreaker/texit/master.svg?style=plastic)](https://coveralls.io/github/corebreaker/texit)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=plastic)](https://godoc.org/github.com/corebreaker/texit)
 [![Release](https://img.shields.io/github/release/corebreaker/texit.svg?style=plastic)](https://github.com/corebreaker/texit/releases)
 
 
