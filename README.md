@@ -2,7 +2,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/corebreaker/texit/badge.svg?branch=master)](https://coveralls.io/github/corebreaker/texit?branch=master)
 [![GoDoc](https://godoc.org/github.com/corebreaker/texit?status.svg)](https://godoc.org/github.com/corebreaker/texit)
 ![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
-[![release](https://img.shields.io/badge/release%20-v10.2-0077b3.svg?style=flat-square)](https://github.com/corebreaker/texit/releases)
+[![release](https://img.shields.io/badge/release%20-v1.0.0-0077b3.svg?style=flat-square)](https://github.com/corebreaker/texit/releases)
 
 Yes, you can use os.Exit() in Go tests.
 
