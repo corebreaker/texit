@@ -42,7 +42,7 @@ func TestFuncName(t *testing.T) {
 		t.Errorf("No error returned, name=%s:%d", res.name, res.line)
 	}
 
-	if res.err.Error() != _FUNCNAME_ERRMSG {
+	if res.err != ErrTestFuncNameNotFound {
 		t.Errorf("Bad error: %v", res.err)
 	}
 }

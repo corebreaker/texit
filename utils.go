@@ -7,7 +7,7 @@ import (
 )
 
 // Error message in the case of no testing function was found by `func_name` function
-const _FUNCNAME_ERRMSG = "Test function name has not found"
+var ErrTestFuncNameNotFound = errors.New("Test function name has not found")
 
 // Returns the name of testing function
 // An error is returned if no testing function is found
@@ -50,5 +50,5 @@ func test_func_name() (string, int, error) {
 	}
 
 	// Returns an error if no testing function was found
-	return "", 0, errors.New(_FUNCNAME_ERRMSG)
+	return "", 0, ErrTestFuncNameNotFound
 }
