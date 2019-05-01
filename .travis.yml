@@ -1,7 +1,7 @@
 language: go
 sudo: false
 go:
-- "go1.9"
+- "go1.12"
 before_install:
 - go get github.com/mattn/goveralls
 script:
