@@ -163,22 +163,20 @@ func TestExecCommandWithError(t *testing.T) {
 	cmd := &tTestCmd{soPipeErr: err, soReader: soRd, seReader: seRd}
 	cmdMaker = cmd
 
-	f := func() {}
-
-	DoTestWithExit(f)
+	DoTestWithExit(nil)
 
 	cmd.soPipeErr, cmd.sePipeErr = nil, err
-	DoTestWithExit(f)
+	DoTestWithExit(nil)
 
 	cmd.sePipeErr, cmd.startErr = nil, err
-	DoTestWithExit(f)
+	DoTestWithExit(nil)
 
 	cmd.startErr, soRd.err = nil, err
-	DoTestWithExit(f)
+	DoTestWithExit(nil)
 
 	soRd.err, seRd.err = io.EOF, err
-	DoTestWithExit(f)
+	DoTestWithExit(nil)
 
 	seRd.err, cmd.waitErr = io.EOF, err
-	DoTestWithExit(f)
+	DoTestWithExit(nil)
 }
