@@ -7,13 +7,15 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 const (
 	// Argument to notice the subprocess, try to have a pretty complicated argument to avoid collisions.
 	_TEXIT_ARG = "TEXIT-X1RFWElUX0JFX0NSQVNIRVIK:"
 )
+
+var texitExit = os.Exit
+var cmdMaker iExec = tStdExec{}
 
 // DoTestWithExit
 func DoTestWithExit(func_to_test func()) (stdout, stderr string, status_code int, err error) {
@@ -40,18 +42,23 @@ func DoTestWithExit(func_to_test func()) (stdout, stderr string, status_code int
 	if line_arg == prog_line {
 		func_to_test()
 
-		os.Exit(0)
+		texitExit(0)
+
+		return "", "", -1, nil
 	}
 
 	args := []string{"-test.run=" + name}
 	for _, arg := range os.Args {
-		if strings.HasPrefix(arg, "-test.coverprofile=") || strings.HasPrefix(arg, "-test.v=") || (arg == "-test.v") {
+		const coverprofileArg = "-test.coverprofile="
+		const vArg = "-test.v"
+
+		if strings.HasPrefix(arg, coverprofileArg) || strings.HasPrefix(arg, vArg + "=") || (arg == vArg) {
 			args = append(args, arg)
 		}
 	}
 
 	// Start the actual test in a different subprocess
-	cmd := exec.Command(os.Args[0], append(args, fmt.Sprintf("%s%d", _TEXIT_ARG, prog_line))...)
+	cmd := cmdMaker.Exec(os.Args[0], append(args, fmt.Sprintf("%s%d", _TEXIT_ARG, prog_line))...)
 
 	stdout_pipe, err := cmd.StdoutPipe()
 	if err != nil {
@@ -60,7 +67,7 @@ func DoTestWithExit(func_to_test func()) (stdout, stderr string, status_code int
 
 	defer stdout_pipe.Close()
 
-	stderr_pipe, _ := cmd.StderrPipe()
+	stderr_pipe, err := cmd.StderrPipe()
 	if err != nil {
 		return "", "", -1, err
 	}
@@ -86,20 +93,8 @@ func DoTestWithExit(func_to_test func()) (stdout, stderr string, status_code int
 	// Check that the program exited
 	err = cmd.Wait()
 	if e, ok := err.(*exec.ExitError); (err != nil) && (!(ok && e.Success())) {
-		if ok && (!e.Success()) {
-			status, ok := cmd.ProcessState.Sys().(syscall.WaitStatus)
-			if ok {
-				return string(stdout_bytes), string(stderr_bytes), status.ExitStatus(), err
-			}
-		}
-
-		return string(stdout_bytes), string(stderr_bytes), -1, err
+		return string(stdout_bytes), string(stderr_bytes), cmd.GetExitStatus(), err
 	}
 
-	status, ok := cmd.ProcessState.Sys().(syscall.WaitStatus)
-	if ok {
-		status_code = status.ExitStatus()
-	}
-
-	return string(stdout_bytes), string(stderr_bytes), status_code, nil
+	return string(stdout_bytes), string(stderr_bytes), cmd.GetExitStatus(), nil
 }

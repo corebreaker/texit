@@ -1,7 +1,9 @@
 package texit
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -15,6 +17,20 @@ func is_verbose() bool {
 	}
 
 	return false
+}
+
+// Test func call
+func TestWithProgLine(t *testing.T) {
+	prog_line := func() string {
+		_, line, _ := test_func_name()
+
+		return fmt.Sprint(line + 5)
+	}()
+
+	os.Args = append(os.Args, _TEXIT_ARG+prog_line)
+	texitExit = func(_ int) {}
+
+	DoTestWithExit(func() {})
 }
 
 func TestWithExit1(t *testing.T) {
@@ -89,8 +105,80 @@ func TestWithExit2(t *testing.T) {
 
 // Example and for code coverage
 func TestWithExitDirectCall(t *testing.T) {
-	DoTestWithExit(func() {
+	signal := make(chan bool)
+	defer close(signal)
+
+	go func() {
 		DoTestWithExit(func() {
+			DoTestWithExit(func() {
+			})
 		})
-	})
+
+		signal <- true
+	}()
+
+	<-signal
+}
+
+// Simulate call with arg
+func TestCallToFront(t *testing.T) {
+	last := len(os.Args)
+
+	os.Args = append(os.Args, _TEXIT_ARG+"A")
+	DoTestWithExit(nil)
+	os.Args[last] = _TEXIT_ARG + "1"
+	DoTestWithExit(nil)
+}
+
+type tReader struct {
+	err error
+}
+
+func (rd *tReader) Read(p []byte) (int, error) { return 0, rd.err }
+func (rd *tReader) Close() error               { return nil }
+
+type tTestCmd struct {
+	soReader   io.ReadCloser
+	seReader   io.ReadCloser
+	sePipeErr  error
+	soPipeErr  error
+	startErr   error
+	waitErr    error
+	exitStatus int
+}
+
+func (tc *tTestCmd) Start() error                         { return tc.startErr }
+func (tc *tTestCmd) StdoutPipe() (io.ReadCloser, error)   { return tc.soReader, tc.soPipeErr }
+func (tc *tTestCmd) StderrPipe() (io.ReadCloser, error)   { return tc.seReader, tc.sePipeErr }
+func (tc *tTestCmd) GetExitStatus() int                   { return tc.exitStatus }
+func (tc *tTestCmd) Wait() error                          { return tc.waitErr }
+func (tc *tTestCmd) Exec(name string, arg ...string) iCmd { return tc }
+
+//
+func TestExecCommandWithError(t *testing.T) {
+	err := errors.New("Error")
+
+	soRd, seRd := &tReader{}, &tReader{}
+
+	cmd := &tTestCmd{soPipeErr: err, soReader: soRd, seReader: seRd}
+	cmdMaker = cmd
+
+	f := func() {}
+
+	DoTestWithExit(f)
+
+	cmd.soPipeErr, cmd.sePipeErr = nil, err
+	DoTestWithExit(f)
+
+	cmd.sePipeErr, cmd.startErr = nil, err
+	DoTestWithExit(f)
+
+	cmd.startErr, soRd.err = nil, err
+	DoTestWithExit(f)
+
+	soRd.err, seRd.err = io.EOF, err
+	DoTestWithExit(f)
+
+	seRd.err, cmd.waitErr = io.EOF, err
+	DoTestWithExit(f)
 }
