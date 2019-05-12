@@ -1,4 +1,4 @@
 /*
-You could use os.Exit() in Go tests
+Package texit : You could use os.Exit() in Go tests
 */
 package texit

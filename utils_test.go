@@ -6,22 +6,22 @@ import (
 
 func TestFuncName(t *testing.T) {
 	name, line, err := func() (string, int, error) {
-		return test_func_name()
+		return testFuncName()
 	}()
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	const func_name = "TestFuncName"
-	const line_num = 10
+	const funcName = "TestFuncName"
+	const lineNum = 10
 
-	if name != func_name {
-		t.Fatalf("Bad function name (%s != %s)", name, func_name)
+	if name != funcName {
+		t.Fatalf("Bad function name (%s != %s)", name, funcName)
 	}
 
-	if line != line_num {
-		t.Fatalf("Bad file line (%d != %d)", line, line_num)
+	if line != lineNum {
+		t.Fatalf("Bad file line (%d != %d)", line, lineNum)
 	}
 
 	type tMsg struct {
@@ -33,7 +33,7 @@ func TestFuncName(t *testing.T) {
 	resp := make(chan tMsg)
 
 	go func() {
-		name, line, err := test_func_name()
+		name, line, err := testFuncName()
 		resp <- tMsg{name, line, err}
 	}()
 

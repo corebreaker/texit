@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func is_verbose() bool {
+func isVerbose() bool {
 	for _, arg := range os.Args {
 		if strings.HasPrefix(arg, "-test.v=") || (arg == "-test.v") {
 			return true
@@ -21,22 +21,22 @@ func is_verbose() bool {
 
 // Test func call
 func TestWithProgLine(t *testing.T) {
-	prog_line := func() string {
-		_, line, _ := test_func_name()
+	progLine := func() string {
+		_, line, _ := testFuncName()
 
 		return fmt.Sprint(line + 5)
 	}()
 
-	os.Args = append(os.Args, _TEXIT_ARG+prog_line)
+	os.Args = append(os.Args, _TEXIT_ARG+progLine)
 	texitExit = func(_ int) {}
 
-	DoTestWithExit(func() {})
+	_, _, _, _ = DoTestWithExit(func() {})
 }
 
 func TestWithExit1(t *testing.T) {
-	stdout, stderr, status_code, err := DoTestWithExit(func() {
+	stdout, stderr, statusCode, err := DoTestWithExit(func() {
 		fmt.Println("Hello OUT!")
-		fmt.Fprintln(os.Stderr, "Hello ERR!")
+		_, _ = fmt.Fprintln(os.Stderr, "Hello ERR!")
 
 		os.Exit(0)
 	})
@@ -45,33 +45,33 @@ func TestWithExit1(t *testing.T) {
 		t.Fatal(err, stderr, stdout)
 	}
 
-	if status_code != 0 {
-		t.Fatal("Bad status code: ", status_code)
+	if statusCode != 0 {
+		t.Fatal("Bad status code: ", statusCode)
 	}
 
-	stdout_ref, stderr_ref := "Hello OUT!", "Hello ERR!"
-	if is_verbose() {
-		func_name, _, err := test_func_name()
+	stdoutRef, stderrRef := "Hello OUT!", "Hello ERR!"
+	if isVerbose() {
+		funcName, _, err := testFuncName()
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		stdout_ref = fmt.Sprintf("=== RUN   %s\n%s", func_name, stdout_ref)
+		stdoutRef = fmt.Sprintf("=== RUN   %s\n%s", funcName, stdoutRef)
 	}
 
-	if strings.TrimSpace(stdout) != stdout_ref {
+	if strings.TrimSpace(stdout) != stdoutRef {
 		t.Fatal("Bad standard output: ", stdout, fmt.Sprintf("  `%s`", strings.TrimSpace(stdout)))
 	}
 
-	if strings.TrimSpace(stderr) != stderr_ref {
+	if strings.TrimSpace(stderr) != stderrRef {
 		t.Fatal("Bad error output: ", stderr)
 	}
 }
 
 func TestWithExit2(t *testing.T) {
-	stdout, stderr, status_code, err := DoTestWithExit(func() {
+	stdout, stderr, statusCode, err := DoTestWithExit(func() {
 		fmt.Println("Hello OUT!")
-		fmt.Fprintln(os.Stderr, "Hello ERR!")
+		_, _ = fmt.Fprintln(os.Stderr, "Hello ERR!")
 
 		os.Exit(123)
 	})
@@ -80,25 +80,25 @@ func TestWithExit2(t *testing.T) {
 		t.Fatal("Error expected", stderr, stdout)
 	}
 
-	if status_code != 123 {
-		t.Fatalf("Status code expected: %d != 1", status_code)
+	if statusCode != 123 {
+		t.Fatalf("Status code expected: %d != 1", statusCode)
 	}
 
-	stdout_ref, stderr_ref := "Hello OUT!", "Hello ERR!"
-	if is_verbose() {
-		func_name, _, err := test_func_name()
+	stdoutRef, stderrRef := "Hello OUT!", "Hello ERR!"
+	if isVerbose() {
+		funcName, _, err := testFuncName()
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		stdout_ref = fmt.Sprintf("=== RUN   %s\n%s", func_name, stdout_ref)
+		stdoutRef = fmt.Sprintf("=== RUN   %s\n%s", funcName, stdoutRef)
 	}
 
-	if strings.TrimSpace(stdout) != stdout_ref {
+	if strings.TrimSpace(stdout) != stdoutRef {
 		t.Fatal("Bad standard output: ", stdout, fmt.Sprintf("  `%s`", strings.TrimSpace(stdout)))
 	}
 
-	if strings.TrimSpace(stderr) != stderr_ref {
+	if strings.TrimSpace(stderr) != stderrRef {
 		t.Fatal("Bad error output: ", stderr)
 	}
 }
@@ -109,8 +109,8 @@ func TestWithExitDirectCall(t *testing.T) {
 	defer close(signal)
 
 	go func() {
-		DoTestWithExit(func() {
-			DoTestWithExit(func() {
+		_, _, _, _ = DoTestWithExit(func() {
+			_, _, _, _ = DoTestWithExit(func() {
 			})
 		})
 
@@ -125,9 +125,9 @@ func TestCallToFront(t *testing.T) {
 	last := len(os.Args)
 
 	os.Args = append(os.Args, _TEXIT_ARG+"A")
-	DoTestWithExit(nil)
+	_, _, _, _ = DoTestWithExit(nil)
 	os.Args[last] = _TEXIT_ARG + "1"
-	DoTestWithExit(nil)
+	_, _, _, _ = DoTestWithExit(nil)
 }
 
 type tReader struct {
@@ -163,20 +163,20 @@ func TestExecCommandWithError(t *testing.T) {
 	cmd := &tTestCmd{soPipeErr: err, soReader: soRd, seReader: seRd}
 	cmdMaker = cmd
 
-	DoTestWithExit(nil)
+	_, _, _, _ = DoTestWithExit(nil)
 
 	cmd.soPipeErr, cmd.sePipeErr = nil, err
-	DoTestWithExit(nil)
+	_, _, _, _ = DoTestWithExit(nil)
 
 	cmd.sePipeErr, cmd.startErr = nil, err
-	DoTestWithExit(nil)
+	_, _, _, _ = DoTestWithExit(nil)
 
 	cmd.startErr, soRd.err = nil, err
-	DoTestWithExit(nil)
+	_, _, _, _ = DoTestWithExit(nil)
 
 	soRd.err, seRd.err = io.EOF, err
-	DoTestWithExit(nil)
+	_, _, _, _ = DoTestWithExit(nil)
 
 	seRd.err, cmd.waitErr = io.EOF, err
-	DoTestWithExit(nil)
+	_, _, _, _ = DoTestWithExit(nil)
 }

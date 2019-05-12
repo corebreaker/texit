@@ -41,8 +41,8 @@ func (sc *tStdCmd) GetExitStatus() int {
 	return sc.cmd.ProcessState.ExitCode()
 }
 
-type tStdExec struct {}
+type tStdExec struct{}
 
 func (tStdExec) Exec(name string, arg ...string) iCmd {
-	return &tStdCmd{exec.Command(name, arg...) }
+	return &tStdCmd{exec.Command(name, arg...)}
 }
