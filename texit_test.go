@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -178,5 +179,8 @@ func TestExecCommandWithError(t *testing.T) {
 	_, _, _, _ = DoTestWithExit(nil)
 
 	seRd.err, cmd.waitErr = io.EOF, err
+	_, _, _, _ = DoTestWithExit(nil)
+
+	cmd.waitErr = &exec.ExitError{ProcessState: &os.ProcessState{}}
 	_, _, _, _ = DoTestWithExit(nil)
 }

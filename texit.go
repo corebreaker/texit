@@ -120,10 +120,15 @@ func DoTestWithExit(funcToTest func()) (stdout, stderr string, statusCode int, e
 	}
 
 	cmd, outBytes, errBytes, err := execCmd(name, progLine)
-
-	if e, ok := err.(*exec.ExitError); (err != nil) && (!(ok && e.Success())) {
-		return string(outBytes), string(errBytes), cmd.GetExitStatus(), err
+	exitStatus := -1
+	if cmd != nil {
+		exitStatus = cmd.GetExitStatus()
 	}
 
-	return string(outBytes), string(errBytes), cmd.GetExitStatus(), nil
+	if e, ok := err.(*exec.ExitError); (err != nil) && ok && e.Success() {
+		e.Success()
+		err = nil
+	}
+
+	return string(outBytes), string(errBytes), exitStatus, err
 }
